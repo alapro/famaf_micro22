@@ -40,51 +40,51 @@
 
 /** @defgroup BSP BSP
   * @{
-  */ 
+  */
 
 /** @defgroup STM32F4_DISCOVERY STM32F4 DISCOVERY
   * @{
-  */   
-    
+  */
+
 /** @defgroup STM32F4_DISCOVERY_LOW_LEVEL STM32F4 DISCOVERY LOW LEVEL
   * @brief This file provides set of firmware functions to manage Leds and push-button
   *        available on STM32F4-Discovery Kit from STMicroelectronics.
   * @{
-  */ 
+  */
 
 /** @defgroup STM32F4_DISCOVERY_LOW_LEVEL_Private_TypesDefinitions STM32F4 DISCOVERY LOW LEVEL Private TypesDefinitions
   * @{
-  */ 
+  */
 /**
   * @}
-  */ 
+  */
 
 /** @defgroup STM32F4_DISCOVERY_LOW_LEVEL_Private_Defines STM32F4 DISCOVERY LOW LEVEL Private Defines
   * @{
   */
-  
+#define NUM_LEDS_BLINKY	4
   /**
   * @brief STM32F4 DISCO BSP Driver version number V2.1.3
   */
 #define __STM32F4_DISCO_BSP_VERSION_MAIN   (0x02) /*!< [31:24] main version */
 #define __STM32F4_DISCO_BSP_VERSION_SUB1   (0x01) /*!< [23:16] sub1 version */
 #define __STM32F4_DISCO_BSP_VERSION_SUB2   (0x03) /*!< [15:8]  sub2 version */
-#define __STM32F4_DISCO_BSP_VERSION_RC     (0x00) /*!< [7:0]  release candidate */ 
+#define __STM32F4_DISCO_BSP_VERSION_RC     (0x00) /*!< [7:0]  release candidate */
 #define __STM32F4_DISCO_BSP_VERSION         ((__STM32F4_DISCO_BSP_VERSION_MAIN << 24)\
                                              |(__STM32F4_DISCO_BSP_VERSION_SUB1 << 16)\
                                              |(__STM32F4_DISCO_BSP_VERSION_SUB2 << 8 )\
-                                             |(__STM32F4_DISCO_BSP_VERSION_RC)) 
+                                             |(__STM32F4_DISCO_BSP_VERSION_RC))
 /**
   * @}
-  */ 
+  */
 
 
 /** @defgroup STM32F4_DISCOVERY_LOW_LEVEL_Private_Macros STM32F4 DISCOVERY LOW LEVEL Private Macros
   * @{
-  */ 
+  */
 /**
   * @}
-  */ 
+  */
 
 
 
@@ -92,39 +92,52 @@ TIM_HandleTypeDef htim2;
 
 /** @defgroup STM32F4_DISCOVERY_LOW_LEVEL_Private_Variables STM32F4 DISCOVERY LOW LEVEL Private Variables
   * @{
-  */ 
-GPIO_TypeDef* GPIO_PORT[LEDn] = {LED4_GPIO_PORT, 
-                                 LED3_GPIO_PORT, 
+  */
+GPIO_TypeDef* GPIO_PORT[LEDn] = {LED4_GPIO_PORT,
+                                 LED3_GPIO_PORT,
                                  LED5_GPIO_PORT,
                                  LED6_GPIO_PORT};
-const uint16_t GPIO_PIN[LEDn] = {LED4_PIN, 
-                                 LED3_PIN, 
+const uint16_t GPIO_PIN[LEDn] = {LED4_PIN,
+                                 LED3_PIN,
                                  LED5_PIN,
                                  LED6_PIN};
 
-GPIO_TypeDef* BUTTON_PORT[BUTTONn] = {KEY_BUTTON_GPIO_PORT}; 
-const uint16_t BUTTON_PIN[BUTTONn] = {KEY_BUTTON_PIN}; 
+GPIO_TypeDef* BUTTON_PORT[BUTTONn] = {KEY_BUTTON_GPIO_PORT};
+const uint16_t BUTTON_PIN[BUTTONn] = {KEY_BUTTON_PIN};
 const uint8_t BUTTON_IRQn[BUTTONn] = {KEY_BUTTON_EXTI_IRQn};
 
-uint32_t I2cxTimeout = I2Cx_TIMEOUT_MAX;    /*<! Value of Timeout when I2C communication fails */ 
+uint32_t I2cxTimeout = I2Cx_TIMEOUT_MAX;    /*<! Value of Timeout when I2C communication fails */
 uint32_t SpixTimeout = SPIx_TIMEOUT_MAX;    /*<! Value of Timeout when SPI communication fails */
 
 static SPI_HandleTypeDef    SpiHandle;
 static I2C_HandleTypeDef    I2cHandle;
+
+
+struct str_ledBlinky{
+	uint16_t times;
+	uint32_t ton;
+	uint32_t toff;
+	uint32_t tonTimeOut;
+	uint32_t toffTimeOut;
+	Led_TypeDef led;
+}ledBlinkyArray[NUM_LEDS_BLINKY];
+
+
+
 /**
   * @}
-  */ 
+  */
 
 /** @defgroup STM32F4_DISCOVERY_LOW_LEVEL_Private_FunctionPrototypes STM32F4 DISCOVERY LOW LEVEL Private FunctionPrototypes
   * @{
-  */ 
+  */
 /**
   * @}
-  */ 
+  */
 
 /** @defgroup STM32F4_DISCOVERY_LOW_LEVEL_Private_Functions STM32F4 DISCOVERY LOW LEVEL Private Functions
   * @{
-  */ 
+  */
 static void     I2Cx_Init(void);
 static void     I2Cx_WriteData(uint8_t Addr, uint8_t Reg, uint8_t Value);
 static uint8_t  I2Cx_ReadData(uint8_t Addr, uint8_t Reg);
@@ -156,13 +169,15 @@ void 			SystemClock_Config(void);
 void 			TIM2_Init(void);
 
 void 			Error_Handler(void);
+
+void			Led_services1ms(void);
 /**
   * @}
   */
 
 /** @defgroup STM32F4_DISCOVERY_LOW_LEVEL_LED_Functions STM32F4 DISCOVERY LOW LEVEL LED Functions
   * @{
-  */ 
+  */
 
 void BSP_Init(void){
 
@@ -198,7 +213,7 @@ uint32_t BSP_GetVersion(void)
 
 /**
   * @brief  Configures LED GPIO.
-  * @param  Led: Specifies the Led to be configured. 
+  * @param  Led: Specifies the Led to be configured.
   *   This parameter can be one of following parameters:
   *     @arg LED4
   *     @arg LED3
@@ -208,7 +223,7 @@ uint32_t BSP_GetVersion(void)
 void BSP_LED_Init(Led_TypeDef Led)
 {
   GPIO_InitTypeDef  GPIO_InitStruct;
-  
+
   /* Enable the GPIO_LED Clock */
   LEDx_GPIO_CLK_ENABLE(Led);
 
@@ -217,79 +232,122 @@ void BSP_LED_Init(Led_TypeDef Led)
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
-  
+
   HAL_GPIO_Init(GPIO_PORT[Led], &GPIO_InitStruct);
-  
-  HAL_GPIO_WritePin(GPIO_PORT[Led], GPIO_PIN[Led], GPIO_PIN_RESET); 
+
+  HAL_GPIO_WritePin(GPIO_PORT[Led], GPIO_PIN[Led], GPIO_PIN_RESET);
 }
 
 /**
   * @brief  Turns selected LED On.
-  * @param  Led: Specifies the Led to be set on. 
+  * @param  Led: Specifies the Led to be set on.
   *   This parameter can be one of following parameters:
   *     @arg LED4
   *     @arg LED3
   *     @arg LED5
-  *     @arg LED6  
+  *     @arg LED6
   */
 void BSP_LED_On(Led_TypeDef Led)
 {
-  HAL_GPIO_WritePin(GPIO_PORT[Led], GPIO_PIN[Led], GPIO_PIN_SET); 
+  HAL_GPIO_WritePin(GPIO_PORT[Led], GPIO_PIN[Led], GPIO_PIN_SET);
 }
 
 /**
   * @brief  Turns selected LED Off.
-  * @param  Led: Specifies the Led to be set off. 
+  * @param  Led: Specifies the Led to be set off.
   *   This parameter can be one of following parameters:
   *     @arg LED4
   *     @arg LED3
   *     @arg LED5
-  *     @arg LED6 
+  *     @arg LED6
   */
 void BSP_LED_Off(Led_TypeDef Led)
 {
-  HAL_GPIO_WritePin(GPIO_PORT[Led], GPIO_PIN[Led], GPIO_PIN_RESET); 
+  HAL_GPIO_WritePin(GPIO_PORT[Led], GPIO_PIN[Led], GPIO_PIN_RESET);
 }
 
 /**
   * @brief  Toggles the selected LED.
-  * @param  Led: Specifies the Led to be toggled. 
+  * @param  Led: Specifies the Led to be toggled.
   *   This parameter can be one of following parameters:
   *     @arg LED4
   *     @arg LED3
   *     @arg LED5
-  *     @arg LED6  
+  *     @arg LED6
   */
 void BSP_LED_Toggle(Led_TypeDef Led)
 {
   HAL_GPIO_TogglePin(GPIO_PORT[Led], GPIO_PIN[Led]);
 }
 
+void BSP_LED_Blinky(Led_TypeDef led, uint16_t times, uint32_t t_on, uint32_t t_off ){
+
+	uint8_t i;
+
+	for(i=0;i<NUM_LEDS_BLINKY;i++){
+		if(ledBlinkyArray[i].times == 0){
+			ledBlinkyArray[i].times = times;
+			ledBlinkyArray[i].tonTimeOut = t_on;
+			ledBlinkyArray[i].toffTimeOut = t_off;
+			ledBlinkyArray[i].ton = t_on;
+			ledBlinkyArray[i].toff = t_off;
+			ledBlinkyArray[i].led = led;
+			BSP_LED_On(led);
+			break;
+		}
+	}
+}
+
+void LED_blinkyIRQ1ms(void){
+	uint8_t i;
+
+	for(i=0;i<NUM_LEDS_BLINKY;i++){
+		if(ledBlinkyArray[i].times){
+			if(ledBlinkyArray[i].tonTimeOut){
+				ledBlinkyArray[i].tonTimeOut--;
+				if(!ledBlinkyArray[i].tonTimeOut){
+					BSP_LED_Off(ledBlinkyArray[i].led);
+				}
+			} else if(ledBlinkyArray[i].toffTimeOut){
+				ledBlinkyArray[i].toffTimeOut--;
+				if(!ledBlinkyArray[i].toffTimeOut){
+					ledBlinkyArray[i].times--;
+					if(ledBlinkyArray[i].times){
+						ledBlinkyArray[i].tonTimeOut = ledBlinkyArray[i].ton;;
+						ledBlinkyArray[i].toffTimeOut = ledBlinkyArray[i].toff;
+						BSP_LED_On(ledBlinkyArray[i].led);
+					}
+				}
+			}
+		}
+	}
+}
+
 /**
   * @}
-  */ 
+  */
 
 /** @defgroup STM32F4_DISCOVERY_LOW_LEVEL_BUTTON_Functions STM32F4 DISCOVERY LOW LEVEL BUTTON Functions
   * @{
-  */ 
+  */
 
 /**
   * @brief  Configures Button GPIO and EXTI Line.
   * @param  Button: Specifies the Button to be configured.
   *   This parameter should be: BUTTON_KEY
   * @param  Mode: Specifies Button mode.
-  *   This parameter can be one of following parameters:   
-  *     @arg BUTTON_MODE_GPIO: Button will be used as simple IO 
+  *   This parameter can be one of following parameters:
+  *     @arg BUTTON_MODE_GPIO: Button will be used as simple IO
   *     @arg BUTTON_MODE_EXTI: Button will be connected to EXTI line with interrupt
-  *                            generation capability  
+  *                            generation capability
   */
 void BSP_PB_Init(Button_TypeDef Button, ButtonMode_TypeDef Mode)
 {
   GPIO_InitTypeDef GPIO_InitStruct;
-  
+
   /* Enable the BUTTON Clock */
   BUTTONx_GPIO_CLK_ENABLE(Button);
-  
+
   if (Mode == BUTTON_MODE_GPIO)
   {
     /* Configure Button pin as input */
@@ -297,19 +355,19 @@ void BSP_PB_Init(Button_TypeDef Button, ButtonMode_TypeDef Mode)
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
-    
+
     HAL_GPIO_Init(BUTTON_PORT[Button], &GPIO_InitStruct);
   }
-  
+
   if (Mode == BUTTON_MODE_EXTI)
   {
     /* Configure Button pin as input with External interrupt */
     GPIO_InitStruct.Pin = BUTTON_PIN[Button];
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
-    GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING; 
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
     HAL_GPIO_Init(BUTTON_PORT[Button], &GPIO_InitStruct);
-    
+
     /* Enable and set Button EXTI Interrupt to the lowest priority */
     HAL_NVIC_SetPriority((IRQn_Type)(BUTTON_IRQn[Button]), 0x0F, 0);
     HAL_NVIC_EnableIRQ((IRQn_Type)(BUTTON_IRQn[Button]));
@@ -319,7 +377,7 @@ void BSP_PB_Init(Button_TypeDef Button, ButtonMode_TypeDef Mode)
 /**
   * @brief  Returns the selected Button state.
   * @param  Button: Specifies the Button to be checked.
-  *   This parameter should be: BUTTON_KEY  
+  *   This parameter should be: BUTTON_KEY
   * @retval The Button GPIO pin value.
   */
 uint32_t BSP_PB_GetState(Button_TypeDef Button)
@@ -329,11 +387,11 @@ uint32_t BSP_PB_GetState(Button_TypeDef Button)
 
 /**
   * @}
-  */ 
+  */
 
 /** @defgroup STM32F4_DISCOVERY_LOW_LEVEL_BUS_Functions STM32F4 DISCOVERY LOW LEVEL BUS Functions
   * @{
-  */ 
+  */
 
 /*******************************************************************************
                             BUS OPERATIONS
@@ -368,7 +426,7 @@ static void SPIx_Init(void)
 }
 
 /**
-  * @brief  Sends a Byte through the SPI interface and return the Byte received 
+  * @brief  Sends a Byte through the SPI interface and return the Byte received
   *         from the SPI bus.
   * @param  Byte: Byte send.
   * @retval The received byte value
@@ -376,14 +434,14 @@ static void SPIx_Init(void)
 static uint8_t SPIx_WriteRead(uint8_t Byte)
 {
   uint8_t receivedbyte = 0;
-  
+
   /* Send a Byte through the SPI peripheral */
   /* Read byte from the SPI bus */
   if(HAL_SPI_TransmitReceive(&SpiHandle, (uint8_t*) &Byte, (uint8_t*) &receivedbyte, 1, SpixTimeout) != HAL_OK)
   {
     SPIx_Error();
   }
-  
+
   return receivedbyte;
 }
 
@@ -394,7 +452,7 @@ static void SPIx_Error(void)
 {
   /* De-initialize the SPI communication bus */
   HAL_SPI_DeInit(&SpiHandle);
-  
+
   /* Re-Initialize the SPI communication bus */
   SPIx_Init();
 }
@@ -408,10 +466,10 @@ static void SPIx_MspInit(void)
 
   /* Enable the SPI peripheral */
   DISCOVERY_SPIx_CLK_ENABLE();
-  
+
   /* Enable SCK, MOSI and MISO GPIO clocks */
   DISCOVERY_SPIx_GPIO_CLK_ENABLE();
-  
+
   /* SPI SCK, MOSI, MISO pin configuration */
   GPIO_InitStructure.Pin = (DISCOVERY_SPIx_SCK_PIN | DISCOVERY_SPIx_MISO_PIN | DISCOVERY_SPIx_MOSI_PIN);
   GPIO_InitStructure.Mode = GPIO_MODE_AF_PP;
@@ -435,7 +493,7 @@ static void I2Cx_Init(void)
     I2cHandle.Init.OwnAddress1 = 0x33;
     I2cHandle.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
     I2cHandle.Instance = DISCOVERY_I2Cx;
-      
+
     /* Init the I2C */
     I2Cx_MspInit();
     HAL_I2C_Init(&I2cHandle);
@@ -444,16 +502,16 @@ static void I2Cx_Init(void)
 
 /**
   * @brief  Write a value in a register of the device through BUS.
-  * @param  Addr: Device address on BUS Bus.  
+  * @param  Addr: Device address on BUS Bus.
   * @param  Reg: The target register address to write
-  * @param  Value: The target register value to be written 
+  * @param  Value: The target register value to be written
   * @retval HAL status
   */
 static void I2Cx_WriteData(uint8_t Addr, uint8_t Reg, uint8_t Value)
 {
   HAL_StatusTypeDef status = HAL_OK;
-  
-  status = HAL_I2C_Mem_Write(&I2cHandle, Addr, (uint16_t)Reg, I2C_MEMADD_SIZE_8BIT, &Value, 1, I2cxTimeout); 
+
+  status = HAL_I2C_Mem_Write(&I2cHandle, Addr, (uint16_t)Reg, I2C_MEMADD_SIZE_8BIT, &Value, 1, I2cxTimeout);
 
   /* Check the communication status */
   if(status != HAL_OK)
@@ -465,7 +523,7 @@ static void I2Cx_WriteData(uint8_t Addr, uint8_t Reg, uint8_t Value)
 
 /**
   * @brief  Read a register of the device through BUS
-  * @param  Addr: Device address on BUS  
+  * @param  Addr: Device address on BUS
   * @param  Reg: The target register address to read
   * @retval HAL status
   */
@@ -473,9 +531,9 @@ static uint8_t  I2Cx_ReadData(uint8_t Addr, uint8_t Reg)
 {
   HAL_StatusTypeDef status = HAL_OK;
   uint8_t value = 0;
-  
+
   status = HAL_I2C_Mem_Read(&I2cHandle, Addr, (uint16_t)Reg, I2C_MEMADD_SIZE_8BIT, &value, 1,I2cxTimeout);
-  
+
   /* Check the communication status */
   if(status != HAL_OK)
   {
@@ -487,13 +545,13 @@ static uint8_t  I2Cx_ReadData(uint8_t Addr, uint8_t Reg)
 
 /**
   * @brief  Manages error callback by re-initializing I2C.
-  * @param  Addr: I2C Address 
+  * @param  Addr: I2C Address
   */
 static void I2Cx_Error(uint8_t Addr)
 {
   /* De-initialize the I2C communication bus */
   HAL_I2C_DeInit(&I2cHandle);
-  
+
   /* Re-Initialize the I2C communication bus */
   I2Cx_Init();
 }
@@ -509,12 +567,12 @@ static void I2Cx_MspInit(void)
   DISCOVERY_I2Cx_SCL_SDA_GPIO_CLK_ENABLE();
 
   /* DISCOVERY_I2Cx SCL and SDA pins configuration ---------------------------*/
-  GPIO_InitStruct.Pin = DISCOVERY_I2Cx_SCL_PIN | DISCOVERY_I2Cx_SDA_PIN; 
+  GPIO_InitStruct.Pin = DISCOVERY_I2Cx_SCL_PIN | DISCOVERY_I2Cx_SDA_PIN;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
   GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
   GPIO_InitStruct.Pull  = GPIO_NOPULL;
   GPIO_InitStruct.Alternate  = DISCOVERY_I2Cx_SCL_SDA_AF;
-  HAL_GPIO_Init(DISCOVERY_I2Cx_SCL_SDA_GPIO_PORT, &GPIO_InitStruct);     
+  HAL_GPIO_Init(DISCOVERY_I2Cx_SCL_SDA_GPIO_PORT, &GPIO_InitStruct);
 
   /* Enable the DISCOVERY_I2Cx peripheral clock */
   DISCOVERY_I2Cx_CLK_ENABLE();
@@ -531,7 +589,7 @@ static void I2Cx_MspInit(void)
 
   /* Enable and set I2Cx Interrupt to the highest priority */
   HAL_NVIC_SetPriority(DISCOVERY_I2Cx_ER_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DISCOVERY_I2Cx_ER_IRQn); 
+  HAL_NVIC_EnableIRQ(DISCOVERY_I2Cx_ER_IRQn);
 }
 
 /*******************************************************************************
@@ -546,21 +604,21 @@ static void I2Cx_MspInit(void)
 void ACCELERO_IO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
-  
+
   /* Configure the Accelerometer Control pins --------------------------------*/
-  /* Enable CS GPIO clock and configure GPIO pin for Accelerometer Chip select */  
+  /* Enable CS GPIO clock and configure GPIO pin for Accelerometer Chip select */
   ACCELERO_CS_GPIO_CLK_ENABLE();
-  
+
   /* Configure GPIO PIN for LIS Chip select */
   GPIO_InitStructure.Pin = ACCELERO_CS_PIN;
   GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStructure.Pull  = GPIO_NOPULL;
   GPIO_InitStructure.Speed = GPIO_SPEED_MEDIUM;
   HAL_GPIO_Init(ACCELERO_CS_GPIO_PORT, &GPIO_InitStructure);
-  
+
   /* Deselect: Chip Select high */
   ACCELERO_CS_HIGH();
-  
+
   SPIx_Init();
 }
 
@@ -571,17 +629,17 @@ void ACCELERO_IO_Init(void)
 void ACCELERO_IO_ITConfig(void)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
-  
+
   /* Enable INT2 GPIO clock and configure GPIO PINs to detect Interrupts */
   ACCELERO_INT_GPIO_CLK_ENABLE();
-  
+
   /* Configure GPIO PINs to detect Interrupts */
   GPIO_InitStructure.Pin = ACCELERO_INT2_PIN;
   GPIO_InitStructure.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStructure.Speed = GPIO_SPEED_FAST;
   GPIO_InitStructure.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(ACCELERO_INT_GPIO_PORT, &GPIO_InitStructure);
-  
+
   /* Enable and set Accelerometer INT2 to the lowest priority */
   HAL_NVIC_SetPriority((IRQn_Type)ACCELERO_INT2_EXTI_IRQn, 0x0F, 0);
   HAL_NVIC_EnableIRQ((IRQn_Type)ACCELERO_INT2_EXTI_IRQn);
@@ -595,7 +653,7 @@ void ACCELERO_IO_ITConfig(void)
   */
 void ACCELERO_IO_Write(uint8_t *pBuffer, uint8_t WriteAddr, uint16_t NumByteToWrite)
 {
-  /* Configure the MS bit: 
+  /* Configure the MS bit:
      - When 0, the address will remain unchanged in multiple read/write commands.
      - When 1, the address will be auto incremented in multiple read/write commands.
   */
@@ -605,10 +663,10 @@ void ACCELERO_IO_Write(uint8_t *pBuffer, uint8_t WriteAddr, uint16_t NumByteToWr
   }
   /* Set chip select Low at the start of the transmission */
   ACCELERO_CS_LOW();
-  
+
   /* Send the Address of the indexed register */
   SPIx_WriteRead(WriteAddr);
-  
+
   /* Send the data that will be written into the device (MSB First) */
   while(NumByteToWrite >= 0x01)
   {
@@ -616,8 +674,8 @@ void ACCELERO_IO_Write(uint8_t *pBuffer, uint8_t WriteAddr, uint16_t NumByteToWr
     NumByteToWrite--;
     pBuffer++;
   }
-  
-  /* Set chip select High at the end of the transmission */ 
+
+  /* Set chip select High at the end of the transmission */
   ACCELERO_CS_HIGH();
 }
 
@@ -628,7 +686,7 @@ void ACCELERO_IO_Write(uint8_t *pBuffer, uint8_t WriteAddr, uint16_t NumByteToWr
   * @param  NumByteToRead: number of bytes to read from the Accelerometer.
   */
 void ACCELERO_IO_Read(uint8_t *pBuffer, uint8_t ReadAddr, uint16_t NumByteToRead)
-{  
+{
   if(NumByteToRead > 0x01)
   {
     ReadAddr |= (uint8_t)(READWRITE_CMD | MULTIPLEBYTE_CMD);
@@ -639,10 +697,10 @@ void ACCELERO_IO_Read(uint8_t *pBuffer, uint8_t ReadAddr, uint16_t NumByteToRead
   }
   /* Set chip select Low at the start of the transmission */
   ACCELERO_CS_LOW();
-  
+
   /* Send the Address of the indexed register */
   SPIx_WriteRead(ReadAddr);
-  
+
   /* Receive the data that will be read from the device (MSB First) */
   while(NumByteToRead > 0x00)
   {
@@ -651,8 +709,8 @@ void ACCELERO_IO_Read(uint8_t *pBuffer, uint8_t ReadAddr, uint16_t NumByteToRead
     NumByteToRead--;
     pBuffer++;
   }
-  
-  /* Set chip select High at the end of the transmission */ 
+
+  /* Set chip select High at the end of the transmission */
   ACCELERO_CS_HIGH();
 }
 
@@ -661,33 +719,33 @@ void ACCELERO_IO_Read(uint8_t *pBuffer, uint8_t ReadAddr, uint16_t NumByteToRead
 /**
   * @brief  Initializes Audio low level.
   */
-void AUDIO_IO_Init(void) 
+void AUDIO_IO_Init(void)
 {
   GPIO_InitTypeDef  GPIO_InitStruct;
-  
+
   /* Enable Reset GPIO Clock */
   AUDIO_RESET_GPIO_CLK_ENABLE();
-  
+
   /* Audio reset pin configuration */
-  GPIO_InitStruct.Pin = AUDIO_RESET_PIN; 
+  GPIO_InitStruct.Pin = AUDIO_RESET_PIN;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FAST;
   GPIO_InitStruct.Pull  = GPIO_NOPULL;
-  HAL_GPIO_Init(AUDIO_RESET_GPIO, &GPIO_InitStruct);    
-  
+  HAL_GPIO_Init(AUDIO_RESET_GPIO, &GPIO_InitStruct);
+
   I2Cx_Init();
-  
+
   /* Power Down the codec */
   HAL_GPIO_WritePin(AUDIO_RESET_GPIO, AUDIO_RESET_PIN, GPIO_PIN_RESET);
-  
+
   /* Wait for a delay to insure registers erasing */
-  HAL_Delay(5); 
-  
+  HAL_Delay(5);
+
   /* Power on the codec */
   HAL_GPIO_WritePin(AUDIO_RESET_GPIO, AUDIO_RESET_PIN, GPIO_PIN_SET);
-  
+
   /* Wait for a delay to insure registers erasing */
-  HAL_Delay(5); 
+  HAL_Delay(5);
 }
 
 /**
@@ -695,13 +753,13 @@ void AUDIO_IO_Init(void)
   */
 void AUDIO_IO_DeInit(void)
 {
-  
+
 }
 
 /**
   * @brief  Writes a single data.
   * @param  Addr: I2C address
-  * @param  Reg: Reg address 
+  * @param  Reg: Reg address
   * @param  Value: Data to be written
   */
 void AUDIO_IO_Write (uint8_t Addr, uint8_t Reg, uint8_t Value)
@@ -712,7 +770,7 @@ void AUDIO_IO_Write (uint8_t Addr, uint8_t Reg, uint8_t Value)
 /**
   * @brief  Reads a single data.
   * @param  Addr: I2C address
-  * @param  Reg: Reg address 
+  * @param  Reg: Reg address
   * @retval Data to be read
   */
 uint8_t AUDIO_IO_Read(uint8_t Addr, uint8_t Reg)
@@ -722,19 +780,19 @@ uint8_t AUDIO_IO_Read(uint8_t Addr, uint8_t Reg)
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-  */ 
+  */
 
 
 void SystemClock_Config(void)
@@ -865,18 +923,10 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 
-	static uint32_t timeOut = 500;
-
 	// Check for INT Callback from TIM2
 	if(htim->Instance == TIM2){
 		//Enter here every 1 ms.
-		if(timeOut){
-			timeOut--;
-			if(!timeOut){
-				timeOut = 500;
-				BSP_LED_Toggle(LED_BLUE);
-			}
-		}
+		LED_blinkyIRQ1ms();
 	}
 }
 
@@ -899,5 +949,5 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-    
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

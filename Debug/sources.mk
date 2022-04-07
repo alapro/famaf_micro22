@@ -37,7 +37,7 @@ Utilities/Components/stmpe1600 \
 Utilities/Components/stmpe811 \
 Utilities/Components/ts3510 \
 Utilities/Components/wm8994 \
-Utilities/STM32F4-Discovery \
+Utilities/STM32F411E-Discovery \
 src \
 startup \
 

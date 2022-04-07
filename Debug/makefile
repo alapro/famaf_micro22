@@ -10,7 +10,7 @@ RM := rm -rf
 -include sources.mk
 -include startup/subdir.mk
 -include src/subdir.mk
--include Utilities/STM32F4-Discovery/subdir.mk
+-include Utilities/STM32F411E-Discovery/subdir.mk
 -include Utilities/Components/wm8994/subdir.mk
 -include Utilities/Components/ts3510/subdir.mk
 -include Utilities/Components/stmpe811/subdir.mk

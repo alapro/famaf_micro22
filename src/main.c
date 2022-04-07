@@ -18,7 +18,8 @@ int main(void)
 	BSP_Init();
 
 	for(;;){
-		BSP_LED_Toggle(LED_RED);
-		BSP_Delay(500);
+		BSP_LED_Blinky(LED_RED, 2, 200, 500);
+		BSP_LED_Blinky(LED_BLUE, 3, 500, 500);
+		BSP_Delay(5000);
 	}
 }
