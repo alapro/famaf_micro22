@@ -50,13 +50,13 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: Famaf_Blinky.elf
+all: famaf_micro22.elf
 
 # Tool invocations
-Famaf_Blinky.elf: $(OBJS) $(USER_OBJS) C:\Users\agust\workspace\Famaf_Blinky/LinkerScript.ld
+famaf_micro22.elf: $(OBJS) $(USER_OBJS) C:\Users\agust\workspace\famaf_micro22/LinkerScript.ld
 	@echo 'Building target: $@'
 	@echo 'Invoking: MCU GCC Linker'
-	arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -T"C:/Users/agust/workspace/Famaf_Blinky/LinkerScript.ld" -Wl,-Map=output.map -Wl,--gc-sections -o "Famaf_Blinky.elf" @"objects.list" $(USER_OBJS) $(LIBS) -lm
+	arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -T"C:/Users/agust/workspace/famaf_micro22/LinkerScript.ld" -Wl,-Map=output.map -Wl,--gc-sections -o "famaf_micro22.elf" @"objects.list" $(USER_OBJS) $(LIBS) -lm
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build
@@ -68,8 +68,8 @@ clean:
 
 post-build:
 	-@echo 'Generating binary and Printing size information:'
-	arm-none-eabi-objcopy -O binary "Famaf_Blinky.elf" "Famaf_Blinky.bin"
-	arm-none-eabi-size "Famaf_Blinky.elf"
+	arm-none-eabi-objcopy -O binary "famaf_micro22.elf" "famaf_micro22.bin"
+	arm-none-eabi-size "famaf_micro22.elf"
 	-@echo ' '
 
 .PHONY: all clean dependents

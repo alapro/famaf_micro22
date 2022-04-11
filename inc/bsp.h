@@ -43,6 +43,7 @@ void     	BSP_LED_Toggle(Led_TypeDef Led);
 void		BSP_LED_Blinky(Led_TypeDef Led, uint16_t times, uint32_t t_on, uint32_t t_off );
 uint32_t 	BSP_PB_GetState(Button_TypeDef Button);
 void		BSP_Delay(uint32_t ms);
+float 		BSP_TEMP_GetTemp(void);
 
 /**
   * @}

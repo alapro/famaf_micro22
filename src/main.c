@@ -12,8 +12,9 @@
 #include "bsp.h"
 			
 
-int main(void)
-{
+
+int main(void){
+	float temp;
 
 	BSP_Init();
 
@@ -21,5 +22,8 @@ int main(void)
 		BSP_LED_Blinky(LED_RED, 2, 200, 500);
 		BSP_LED_Blinky(LED_BLUE, 3, 500, 500);
 		BSP_Delay(5000);
+
+		temp = BSP_TEMP_GetTemp();
+		temp++;
 	}
 }
